@@ -31,7 +31,7 @@ const __dirname = dirname(__filename);
 
 // Paths
 const SESSION_PATH = "/tmp/ups-session.json";
-const SCREENSHOT_DIR = "/home/USER/biz/.playwright-mcp";
+const SCREENSHOT_DIR = "/Users/USER/biz/.playwright-mcp";
 const CONFIG_PATH = join(__dirname, "..", "config.json");
 // Persistent profile directory - preserves cookies, localStorage, history
 // Using /tmp to avoid WSL2 symlink issues with SingletonLock
