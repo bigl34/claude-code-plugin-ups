@@ -3,7 +3,7 @@
 
 Automate UPS collection bookings via CLI-based browser automation (zero context overhead)
 
-![Version](https://img.shields.io/badge/version-2.1.6-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+![Version](https://img.shields.io/badge/version-2.1.7-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
 ## Features
 
@@ -39,6 +39,14 @@ node scripts/dist/cli.js fill-form
    ```bash
    cd scripts && npm install
    ```
+
+## Configuration
+
+Copy `config.template.json` to `config.json` and fill in the required values:
+
+| Field | Placeholder |
+|-------|-------------|
+| `credentials_path` | `/path/to/your/credentials` |
 
 ## Available Commands
 
