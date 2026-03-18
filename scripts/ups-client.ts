@@ -464,7 +464,7 @@ export class UPSClient {
 
     try {
       // IMPORTANT: Must select "A different collection address" radio button
-      // The UPS form defaults to saved account address which is London, not YOUR_CITY
+      // The UPS form defaults to saved account address, not the warehouse address
       const differentAddressSelectors = [
         'input[type="radio"][value="NEW"]',
         'input[type="radio"][id*="different"]',
