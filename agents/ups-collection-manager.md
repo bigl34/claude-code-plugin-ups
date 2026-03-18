@@ -1,7 +1,7 @@
 ---
 name: ups-collection-manager
 description: Use this agent for booking UPS parcel collections from the YOUR_CITY warehouse. Uses CLI-based browser automation (zero context overhead).
-model: opus
+model: claude-opus-4-6
 color: brown
 ---
 
@@ -18,7 +18,7 @@ Book UPS parcel collections from the YOUR_CITY warehouse using the UPS My Choice
 
 Run commands using Bash:
 ```bash
-node /Users/USER/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js <command> [options]
+node $HOME/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js <command> [options]
 ```
 
 | Command | Purpose |
@@ -56,7 +56,7 @@ node /Users/USER/.claude/plugins/local-marketplace/ups-collection-manager/script
 Run the slack-manager CLI directly to fetch the latest door code:
 
 ```bash
-node /Users/USER/.claude/plugins/local-marketplace/slack-manager/scripts/dist/cli.js get-history --channel YOUR_SLACK_CHANNEL_ID --limit 1
+node $HOME/.claude/plugins/local-marketplace/slack-manager/scripts/dist/cli.js get-history --channel YOUR_SLACK_CHANNEL_ID --limit 1
 ```
 
 The output is CSV format. Extract the door code from the `Text` column (7th field) of the first data row.
@@ -88,7 +88,7 @@ Ask user for any overrides:
 
 Run the fill-form command:
 ```bash
-node /Users/USER/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js fill-form \
+node $HOME/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js fill-form \
   --date 2026-01-06 \
   --packages 1 \
   --weight 10 \
@@ -129,7 +129,7 @@ The command returns JSON with:
 
 Only after user confirmation:
 ```bash
-node /Users/USER/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js submit
+node $HOME/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js submit
 ```
 
 The command returns JSON with:
@@ -176,7 +176,7 @@ Description:
 
 Always clean up the browser session:
 ```bash
-node /Users/USER/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js reset
+node $HOME/.claude/plugins/local-marketplace/ups-collection-manager/scripts/dist/cli.js reset
 ```
 
 ## Error Handling
@@ -229,6 +229,6 @@ For other operations, suggest:
 - **Customer support tickets**: gorgias-support-manager
 
 ## Self-Documentation
-Log API quirks/errors to: `/Users/USER/biz/plugin-learnings/ups-collection-manager.md`
+Log API quirks/errors to: `$HOME/biz/plugin-learnings/ups-collection-manager.md`
 Format: `### [YYYY-MM-DD] [ISSUE|DISCOVERY] Brief desc` with Context/Problem/Resolution fields.
 Full workflow: `~/biz/docs/reference/agent-shared-context.md`
