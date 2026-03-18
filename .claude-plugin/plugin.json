@@ -1,5 +1,5 @@
 {
   "name": "ups-collection-manager",
-  "version": "2.1.8",
+  "version": "2.2.0",
   "description": "Automate UPS collection bookings via CLI-based browser automation (zero context overhead)"
 }
