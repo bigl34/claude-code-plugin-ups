@@ -1,0 +1,20 @@
+{
+  "name": "ups-collection-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "cli": "tsx cli.ts",
+    "build": "tsc",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "@local/cli-utils": "github:YOUR_GITHUB_USER/claude-code-plugin-shared"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
