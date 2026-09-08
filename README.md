@@ -3,14 +3,15 @@
 
 Automate UPS collection bookings via CLI-based browser automation (zero context overhead)
 
-![Version](https://img.shields.io/badge/version-2.2.1-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+![Version](https://img.shields.io/badge/version-2.3.0-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
 ## Features
 
-- **fill-form** — Login to UPS and fill collection form (does NOT submit)
-- **screenshot** — Take screenshot of current page
-- **submit** — Submit the filled form (after user confirmation)
-- **reset** — Close browser and clear session
+- **dry-run** — Fill through Date & Time, capture checkpoint artifacts, and stop before payment/submission
+- **book** — Book a UPS collection after strict pre-submit validation
+- **status** — Inspect the latest UPS booking attempt manifest without touching UPS
+- **inspect-last** — Alias for `status`
+- **reset-session** — Close the dedicated UPS Chrome CDP session
 
 ## Prerequisites
 
@@ -24,11 +25,11 @@ Automate UPS collection bookings via CLI-based browser automation (zero context 
 git clone https://github.com/bigl34/claude-code-plugin-ups.git
 cd claude-code-plugin-ups
 cp config.template.json config.json  # fill in your credentials
-cd scripts && npm install
+npm --prefix scripts install
 ```
 
 ```bash
-node scripts/dist/cli.js fill-form
+npm --prefix scripts run cli -- dry-run
 ```
 
 ## Installation
@@ -40,43 +41,46 @@ node scripts/dist/cli.js fill-form
    cd scripts && npm install
    ```
 
+## Configuration
+
+Copy `config.template.json` to `config.json` and fill in the required values:
+
+| Field | Placeholder |
+|-------|-------------|
+| `credentials_path` | `/path/to/your/credentials` |
+
 ## Available Commands
 
 ### Available CLI Commands
 
-| Command      | Purpose                                                 |
-| ------------ | ------------------------------------------------------- |
-| `fill-form`  | Login to UPS and fill collection form (does NOT submit) |
-| `screenshot` | Take screenshot of current page                         |
-| `submit`     | Submit the filled form (after user confirmation)        |
-| `reset`      | Close browser and clear session                         |
+| Command         | Purpose                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| `dry-run`       | Fill through Date & Time, capture checkpoint artifacts, and stop before payment/submission |
+| `book`          | Book a UPS collection after strict pre-submit validation                                   |
+| `status`        | Inspect the latest UPS booking attempt manifest without touching UPS                       |
+| `inspect-last`  | Alias for `status`                                                                         |
+| `reset-session` | Close the dedicated UPS Chrome CDP session                                                 |
 
-### fill-form Options
+### book and dry-run Options
 
-| Option                  | Description              | Default                         |
-| ----------------------- | ------------------------ | ------------------------------- |
-| `--date YYYY-MM-DD`     | Collection date          | Smart: tomorrow if after 1pm UK |
-| `--packages N`          | Number of packages       | 1                               |
-| `--weight N`            | Weight in kg             | 10                              |
-| `--earliest-time HH:MM` | Earliest collection time | 12:00                           |
-| `--latest-time HH:MM`   | Latest collection time   | 18:00                           |
-| `--door-code XXXXXXXXX` | Door code without dashes | Required                        |
-
-### screenshot Options
-
-| Option            | Description                  |
-| ----------------- | ---------------------------- |
-| `--filename NAME` | Screenshot filename          |
-| `--full-page`     | Capture full scrollable page |
+| Option                     | Description                                   | Default                         |
+| -------------------------- | --------------------------------------------- | ------------------------------- |
+| `--date YYYY-MM-DD`        | Collection date                               | Smart: tomorrow if after 1pm UK |
+| `--packages N`             | Number of packages                            | 1                               |
+| `--weight N`               | Weight in kg                                  | 10                              |
+| `--earliest HH:MM`         | Earliest collection time                      | 12:00                           |
+| `--latest HH:MM`           | Latest collection time                        | 18:00                           |
+| `--door-code XXXXXXXXX`    | Door code without dashes                      | Fetched from Slack when omitted |
+| `--forbid-date YYYY-MM-DD` | Block a date from smart or explicit selection | None                            |
 
 ## Usage Examples
 
 ```bash
-node scripts/dist/cli.js fill-form --date 2026-01-07 --packages 2 --weight 25 --door-code 123456789
+npm --prefix scripts run cli -- dry-run --date 2026-01-07 --packages 2 --weight 25 --door-code 123456789
 ```
 
 ```bash
-node scripts/dist/cli.js fill-form --door-code 123456789
+npm --prefix scripts run cli -- dry-run --door-code 123456789
 ```
 
 ## How It Works

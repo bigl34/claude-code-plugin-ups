@@ -1,5 +1,6 @@
 {
   "name": "ups-collection-manager",
-  "version": "2.2.1",
-  "description": "Automate UPS collection bookings via CLI-based browser automation (zero context overhead)"
+  "version": "2.3.0",
+  "description": "Automate UPS collection bookings via CLI-based browser automation (zero context overhead)",
+  "repository": "https://github.com/bigl34/claude-code-plugin-ups"
 }

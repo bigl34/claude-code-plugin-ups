@@ -1,85 +1,98 @@
 #!/usr/bin/env npx tsx
-/**
- * UPS Collection Manager CLI
- *
- * Zod-validated CLI for booking UPS parcel collections.
- */
 
 import { z, createCommand, runCli, cliTypes } from "@local/cli-utils";
-import { UPSClient } from "./ups-client.js";
+import { UPSClient, type CollectionOptions } from "./ups-client.js";
+import { realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
-// Common form options schema
-const formOptionsSchema = z.object({
-  date: z.string().optional().describe("Collection date (YYYY-MM-DD, default: smart selection based on time)"),
+const collectionOptionsSchema = z.object({
+  date: z.string().optional().describe("Collection date: YYYY-MM-DD, today, tomorrow, or smart default"),
   packages: cliTypes.int(1, 99).optional().describe("Number of packages (default: 1)"),
-  weight: cliTypes.int(1, 1000).optional().describe("Weight in kg (default: 10)"),
-  earliestTime: z.string().optional().describe("Earliest collection time HH:MM (default: 12:00)"),
-  latestTime: z.string().optional().describe("Latest collection time HH:MM (default: 18:00)"),
-  doorCode: z.string().optional().describe("Door code without dashes (required)"),
-  specialInstructions: z.string().optional().describe("Custom special instructions (overrides door code)"),
+  weight: cliTypes.int(1, 1000).optional().describe("Total weight in kg (default: 10)"),
+  earliest: z.string().optional().describe("Earliest collection time HH:MM (default: 12:00)"),
+  latest: z.string().optional().describe("Latest collection time HH:MM (default: 18:00)"),
+  earliestTime: z.string().optional().describe("Backward-compatible alias for --earliest"),
+  latestTime: z.string().optional().describe("Backward-compatible alias for --latest"),
+  doorCode: z.string().optional().describe("Door code; fetched from Slack when omitted, or left blank when unavailable"),
+  skipDoorCode: z.boolean().optional().describe("Book without a door code; special instructions default to blank"),
+  specialInstructions: z.string().optional().describe("Override UPS special instructions"),
+  forbidDate: z.string().optional().describe("Forbidden collection date(s): YYYY-MM-DD, today, tomorrow, or comma-separated list"),
+  forbiddenDate: z.string().optional().describe("Backward-compatible alias for --forbid-date"),
 });
 
-// Define commands with Zod schemas
-const commands = {
-  "fill-form": createCommand(
-    formOptionsSchema,
-    async (args, client: UPSClient) => {
-      return client.fillForm({
-        date: args.date as string | undefined,
-        packages: args.packages as number | undefined,
-        weight: args.weight as number | undefined,
-        earliestTime: (args.earliestTime as string | undefined) || "12:00",
-        latestTime: (args.latestTime as string | undefined) || "18:00",
-        doorCode: args.doorCode as string | undefined,
-        specialInstructions: args.specialInstructions as string | undefined,
-      });
-    },
-    "Login to UPS and fill collection form (does not submit)"
-  ),
+const resetOptionsSchema = z.object({
+  clearProfile: z.boolean().optional().describe("Also delete the persistent UPS Chrome profile"),
+});
 
+const emptyOptionsSchema = z.object({});
+
+export const commands = {
   "book": createCommand(
-    formOptionsSchema,
-    async (args, client: UPSClient) => {
-      return client.book({
-        date: args.date as string | undefined,
-        packages: args.packages as number | undefined,
-        weight: args.weight as number | undefined,
-        earliestTime: (args.earliestTime as string | undefined) || "12:00",
-        latestTime: (args.latestTime as string | undefined) || "18:00",
-        doorCode: args.doorCode as string | undefined,
-        specialInstructions: args.specialInstructions as string | undefined,
-      });
+    collectionOptionsSchema,
+    async (args, client: UPSClient, globals) => {
+      const options = args as CollectionOptions;
+      return globals.dryRun ? client.dryRun(options) : client.book(options);
     },
-    "Fill form AND submit in one operation (keeps browser alive)"
-  ),
-
-  "screenshot": createCommand(
-    z.object({
-      filename: z.string().optional().describe("Screenshot filename (default: ups-<timestamp>.png)"),
-      fullPage: z.boolean().optional().describe("Capture full scrollable page"),
-    }),
-    async (args, client: UPSClient) => {
-      const { filename, fullPage } = args as { filename?: string; fullPage?: boolean };
-      return client.takeScreenshot({ filename, fullPage });
+    "Book a UPS collection after strict pre-submit validation",
+    {
+      sideEffect: "external_send",
+      requiresConfirmation: true,
+      dryRunSupported: true,
     },
-    "Take screenshot of current page"
   ),
 
-  "submit": createCommand(
-    z.object({}),
-    async (_args, client: UPSClient) => client.submit(),
-    "Submit the filled form (after user confirmation)"
+  "dry-run": createCommand(
+    collectionOptionsSchema,
+    async (args, client: UPSClient) => client.dryRun(args as CollectionOptions),
+    "Fill through Date & Time, capture checkpoint artifacts, and stop before payment/submission",
+    {
+      sideEffect: "write",
+      idempotent: false,
+    },
   ),
 
-  "reset": createCommand(
-    z.object({}),
-    async (_args, client: UPSClient) => client.reset(),
-    "Close browser and clear session"
+  "reset-session": createCommand(
+    resetOptionsSchema,
+    async (args, client: UPSClient) => client.resetSession(args as { clearProfile?: boolean }),
+    "Close the dedicated UPS Chrome CDP session",
+    {
+      sideEffect: "destructive",
+      requiresConfirmation: false,
+      operationResultExit: true,
+    },
+  ),
+
+  "status": createCommand(
+    emptyOptionsSchema,
+    async (_args, client: UPSClient) => client.status(),
+    "Inspect the latest UPS booking attempt manifest without touching UPS",
+    {
+      sideEffect: "read",
+    },
+  ),
+
+  "inspect-last": createCommand(
+    emptyOptionsSchema,
+    async (_args, client: UPSClient) => client.status(),
+    "Alias for status; read-only latest UPS attempt inspection",
+    {
+      sideEffect: "read",
+    },
   ),
 };
 
-// Run CLI
-runCli(commands, UPSClient, {
-  programName: "ups-cli",
-  description: "UPS collection booking",
-});
+let isCliEntry = false;
+try {
+  isCliEntry =
+    process.argv[1] !== undefined &&
+    import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+} catch {
+  isCliEntry = false;
+}
+
+if (isCliEntry) {
+  runCli(commands, UPSClient, {
+    programName: "ups-cli",
+    description: "UPS collection booking via persistent Chrome CDP automation",
+  });
+}

@@ -1,20 +1,29 @@
 {
-  "name": "ups-collection-scripts",
-  "version": "1.0.0",
+  "name": "ups-collection-manager",
+  "version": "2.2.1",
+  "private": true,
   "type": "module",
+  "bin": {
+    "ups-collection-manager": "./cli.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_GITHUB_USER/claude-biz-workspace.git",
+    "directory": "scripts/ups-collection-manager"
+  },
   "scripts": {
     "cli": "tsx cli.ts",
     "build": "tsc",
-    "start": "node dist/cli.js"
+    "start": "tsx cli.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
-    "playwright-extra": "^4.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "playwright": "^1.59.1",
     "@local/cli-utils": "github:bigl34/claude-code-plugin-shared"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "@types/node": "22.19.19",
+    "tsx": "4.22.3",
+    "typescript": "5.9.3"
   }
 }
