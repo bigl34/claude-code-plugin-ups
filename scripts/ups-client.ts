@@ -177,6 +177,14 @@ export class UPSClient {
     };
   }
 
+  async disconnect(): Promise<void> {
+    const browser = this.browser;
+    this.browser = null;
+    this.context = null;
+    this.page = null;
+    if (browser) await browser.close();
+  }
+
   async resetSession(options?: { clearProfile?: boolean }): Promise<Record<string, unknown>> {
     const deleted: string[] = [];
 

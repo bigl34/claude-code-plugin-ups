@@ -1,7 +1,6 @@
 ---
 name: ups-collection-manager
 description: Use this agent for booking UPS parcel collections from the YOUR_CITY warehouse. Uses CLI-based browser automation (zero context overhead).
-model: claude-opus-4-6
 color: secondary
 mode: subagent
 ---
