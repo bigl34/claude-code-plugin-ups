@@ -125,6 +125,15 @@ interface AttemptManifest extends AttemptManifestLike {
   humanUnlock: string | null;
 }
 
+interface AttemptLockHolder {
+  runId: string | null;
+  fingerprint: string | null;
+  pid: number | null;
+  createdAt: string | null;
+}
+
+const SAFE_RUN_ID_RE = /^[\w.-]+$/;
+
 const STAGE_TIMEOUTS: Record<RunStage, number> = {
   preflight: 5_000,
   "resolve-request": 20_000,
@@ -2264,18 +2273,87 @@ export class UPSClient {
   private acquireAttemptLock(fingerprint: string): void {
     const lockPath = this.lockPath(fingerprint);
     try {
-      mkdirSync(lockPath, { mode: 0o700 });
-      writeFileSync(join(lockPath, "lock.json"), `${JSON.stringify({
-        runId: this.activeAttempt?.runId ?? null,
-        fingerprint,
-        createdAt: new Date().toISOString(),
-      }, null, 2)}\n`, { mode: 0o600 });
-      this.activeLockPath = lockPath;
+      this.createAttemptLock(lockPath, fingerprint);
+      return;
     } catch (error) {
-      const reason = error && typeof error === "object" && "code" in error && error.code === "EEXIST"
-        ? "another UPS booking process already holds the attempt lock"
-        : errorMessage(error);
-      throw new Error(`UPS booking blocked: ${reason}. Run npm run cli -- status and inspect attempts before retrying.`);
+      if (errorCode(error) !== "EEXIST") throw attemptLockError(errorMessage(error));
+    }
+
+    const holder = readAttemptLockHolder(lockPath);
+    const cleared = this.clearStaleAttemptLock(lockPath, fingerprint, holder);
+    if (!cleared) throw heldAttemptLockError(holder);
+
+    try {
+      this.createAttemptLock(lockPath, fingerprint);
+    } catch (error) {
+      if (errorCode(error) !== "EEXIST") throw attemptLockError(errorMessage(error));
+      const retryHolder = readAttemptLockHolder(lockPath);
+      throw heldAttemptLockError(retryHolder);
+    }
+  }
+
+  private createAttemptLock(lockPath: string, fingerprint: string): void {
+    mkdirSync(lockPath, { mode: 0o700 });
+    this.activeLockPath = lockPath;
+    const holder: AttemptLockHolder = {
+      runId: this.activeAttempt?.runId ?? null,
+      fingerprint,
+      pid: process.pid,
+      createdAt: new Date().toISOString(),
+    };
+    const lockBody = `${JSON.stringify(holder, null, 2)}\n`;
+    writeFileSync(join(lockPath, "lock.json"), lockBody, { mode: 0o600 });
+  }
+
+  private clearStaleAttemptLock(lockPath: string, fingerprint: string, holder: AttemptLockHolder | null): boolean {
+    if (!holder || holder.pid === null) return false;
+    if (isProcessAlive(holder.pid)) return false;
+
+    const owner = this.readOwningAttempt(holder.runId, fingerprint);
+    if (!owner || owner.submitClicked !== false) return false;
+
+    const tombstonePath = `${lockPath}.stale-${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
+    try {
+      renameSync(lockPath, tombstonePath);
+    } catch {
+      return false;
+    }
+
+    const tombstoneHolder = readAttemptLockHolder(tombstonePath);
+    const sameHolder = tombstoneHolder?.runId === holder.runId && tombstoneHolder?.pid === holder.pid;
+    if (!sameHolder) {
+      try {
+        renameSync(tombstonePath, lockPath);
+      } catch {
+      }
+      return false;
+    }
+
+    const currentRunId = this.activeAttempt?.runId ?? "unknown";
+    const deathMessage = `UPS booking process ${holder.pid} died at stage ${owner.stage} before submit; run ${currentRunId} cleared its stale attempt lock.`;
+    const failedOwner: AttemptManifest = {
+      ...owner,
+      stage: "error",
+      status: "pre_submit_failed",
+      message: deathMessage,
+      updatedAt: new Date().toISOString(),
+    };
+    this.atomicWriteJson(this.attemptPath(owner.runId), failedOwner);
+    rmSync(tombstonePath, { recursive: true, force: true });
+    return true;
+  }
+
+  private readOwningAttempt(runId: string | null, fingerprint: string): AttemptManifest | null {
+    if (!runId || !SAFE_RUN_ID_RE.test(runId)) return null;
+    const manifestPath = this.attemptPath(runId);
+    if (!existsSync(manifestPath)) return null;
+    try {
+      const raw = readFileSync(manifestPath, "utf8");
+      const attempt = JSON.parse(raw) as AttemptManifest;
+      const ownsLock = attempt?.schemaVersion === 1 && attempt.runId === runId && attempt.fingerprint === fingerprint;
+      return ownsLock ? attempt : null;
+    } catch {
+      return null;
     }
   }
 
@@ -2450,6 +2528,48 @@ function fingerprintHash(fingerprint: string): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function errorCode(error: unknown): string | null {
+  const hasCode = Boolean(error) && typeof error === "object" && "code" in (error as object);
+  if (!hasCode) return null;
+  const code = (error as { code: unknown }).code;
+  return typeof code === "string" ? code : null;
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return errorCode(error) !== "ESRCH";
+  }
+}
+
+function readAttemptLockHolder(lockPath: string): AttemptLockHolder | null {
+  try {
+    const raw = readFileSync(join(lockPath, "lock.json"), "utf8");
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const pid = parsed.pid;
+    const validPid = typeof pid === "number" && Number.isInteger(pid) && pid > 0;
+    return {
+      runId: typeof parsed.runId === "string" ? parsed.runId : null,
+      fingerprint: typeof parsed.fingerprint === "string" ? parsed.fingerprint : null,
+      pid: validPid ? pid : null,
+      createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function attemptLockError(reason: string): Error {
+  return new Error(`UPS booking blocked: ${reason}. Run npm run cli -- status and inspect attempts before retrying.`);
+}
+
+function heldAttemptLockError(holder: AttemptLockHolder | null): Error {
+  const ownerRunId = holder?.runId ?? "unknown";
+  return attemptLockError(`another UPS booking process already holds the attempt lock (owner run ${ownerRunId})`);
 }
 
 async function findFreePort(): Promise<number> {

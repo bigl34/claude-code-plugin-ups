@@ -442,7 +442,7 @@ export function classifyPaymentState(
 
 export function isUpsUsernameContinueInterstitial(textInput: string): boolean {
   const text = normalizeWhitespace(textInput);
-  return /Email or Username/i.test(text) &&
+  return /Email or Username|Username or Email/i.test(text) &&
     /Forgot Username\/Password/i.test(text) &&
     /By Continuing, I agree to the UPS Technology Agreement/i.test(text) &&
     /\bContinue\b/i.test(text) &&

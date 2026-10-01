@@ -3,15 +3,15 @@
 
 Automate UPS collection bookings via CLI-based browser automation (zero context overhead)
 
-![Version](https://img.shields.io/badge/version-2.3.1-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+![Version](https://img.shields.io/badge/version-2.3.2-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
 ## Features
 
-- **dry-run** — Fill through Date & Time, capture checkpoint artifacts, and stop before payment/submission
-- **book** — Book a UPS collection after strict pre-submit validation
-- **status** — Inspect the latest UPS booking attempt manifest without touching UPS
-- **inspect-last** — Alias for `status`
-- **reset-session** — Close the dedicated UPS Chrome CDP session
+- CLI
+- **dry-run** — Fill the UPS form and stop before payment or submission.
+- **book** — Submit a live booking with the CLI `--confirm` flag.
+- **status / inspect-last** — Inspect the latest attempt without contacting UPS.
+- **reset-session** — Close the dedicated Chrome CDP session.
 
 ## Prerequisites
 
@@ -43,37 +43,12 @@ npm --prefix scripts run cli -- dry-run
 
 ## Available Commands
 
-### Available CLI Commands
-
-| Command         | Purpose                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------ |
-| `dry-run`       | Fill through Date & Time, capture checkpoint artifacts, and stop before payment/submission |
-| `book`          | Book a UPS collection after strict pre-submit validation                                   |
-| `status`        | Inspect the latest UPS booking attempt manifest without touching UPS                       |
-| `inspect-last`  | Alias for `status`                                                                         |
-| `reset-session` | Close the dedicated UPS Chrome CDP session                                                 |
-
-### book and dry-run Options
-
-| Option                     | Description                                   | Default                         |
-| -------------------------- | --------------------------------------------- | ------------------------------- |
-| `--date YYYY-MM-DD`        | Collection date                               | Smart: tomorrow if after 1pm UK |
-| `--packages N`             | Number of packages                            | 1                               |
-| `--weight N`               | Weight in kg                                  | 10                              |
-| `--earliest HH:MM`         | Earliest collection time                      | 12:00                           |
-| `--latest HH:MM`           | Latest collection time                        | 18:00                           |
-| `--door-code XXXXXXXXX`    | Door code without dashes                      | Fetched from Slack when omitted |
-| `--forbid-date YYYY-MM-DD` | Block a date from smart or explicit selection | None                            |
-
-## Usage Examples
-
-```bash
-npm --prefix scripts run cli -- dry-run --date 2026-01-07 --packages 2 --weight 25 --door-code 123456789
-```
-
-```bash
-npm --prefix scripts run cli -- dry-run --door-code 123456789
-```
+| Command                   | Purpose                                                  |
+| ------------------------- | -------------------------------------------------------- |
+| `dry-run`                 | Fill the UPS form and stop before payment or submission. |
+| `book`                    | Submit a live booking with the CLI `--confirm` flag.     |
+| `status` / `inspect-last` | Inspect the latest attempt without contacting UPS.       |
+| `reset-session`           | Close the dedicated Chrome CDP session.                  |
 
 ## How It Works
 
